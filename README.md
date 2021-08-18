@@ -1,1 +1,1 @@
-# srx-mnha-software-upgrade
+# mnha-software-upgrade
