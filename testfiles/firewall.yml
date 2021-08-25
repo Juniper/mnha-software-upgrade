@@ -1,0 +1,13 @@
+number_sessions-check:
+- command: show snmp mib walk jnxJsSPUMonitoringCurrentTotalSession
+- iterate:
+    xpath: snmp-object
+    id: name
+    tests:
+      - err: ' Number of sessions, pre-check: {{pre["object-value"]}}, post-check: {{post["object-value"]}}'
+        info: active sessions count should not change by more than 10%
+        delta: object-value, 10%
+
+
+tests_include:
+- number_sessions-check

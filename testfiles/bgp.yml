@@ -1,0 +1,24 @@
+bgp-check:
+- command: show bgp summary
+- iterate:
+    id: name
+    tests:
+    - no-diff: //active-prefix-count
+      err: ' pre-check: {{pre["active-prefix-count"]}}, post-check: {{post["active-prefix-count"]}}'
+      info: BGP active prefix count should not change
+    xpath: //bgp-rib
+
+bgp-peers-estab:
+- command: show bgp summary
+- iterate:
+    id: peer-address
+    tests:
+    - err: ' The BGP Neighbour {{post["peer-address"]}} was in {{pre["peer-state"]}},
+        now it''s {{post["peer-state"]}}'
+      info: BGP State check
+      no-diff: peer-state
+    xpath: bgp-peer
+
+tests_include:
+- bgp-check
+- bgp-peers-estab

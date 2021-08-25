@@ -1,0 +1,14 @@
+ospf-check:
+- command: 'show ospf neighbor instance all '
+- iterate:
+    id: interface-name
+    tests:
+    - err: 'OSPF Neighbour gone missing: {{post["interface-name"]}} going to {{post["neighbor-address"]}}
+        In instance {{post["ospf-instance-name"]}} '
+      info: OSPF interface list check
+      list-not-less: null
+      ignore-null: true
+    xpath: //ospf-neighbor
+
+tests_include:
+- ospf-check

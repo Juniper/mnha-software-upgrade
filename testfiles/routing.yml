@@ -1,0 +1,48 @@
+bfd-check:
+- command: show bfd session 
+- iterate:
+    id: session-neighbor
+    tests:
+    - no-diff: //session-state
+      err: ' pre-check: {{pre["session-state"]}}, post-check: {{post["session-state"]}}' 
+      info: The BFD session state check 
+      is-equal: session-state, Up
+    xpath: bfd-session
+
+bgp-check:
+- command: show bgp summary
+- iterate:
+    id: name
+    tests:
+    - no-diff: //active-prefix-count
+      err: ' pre-check: {{pre["active-prefix-count"]}}, post-check: {{post["active-prefix-count"]}}'
+      info: BGP active prefix count should not change by more than 1%
+    xpath: //bgp-rib
+
+bgp-peers-estab:
+- command: show bgp summary
+- iterate:
+    id: peer-address
+    tests:
+    - err: ' The BGP Neighbour {{post["peer-address"]}} was in {{pre["peer-state"]}},
+        now it''s {{post["peer-state"]}}'
+      info: BGP State check
+      no-diff: peer-state
+    xpath: bgp-peer
+
+number_routes-check:
+- command: show route summary
+- iterate:
+    id: table-name
+    tests:
+    - no-diff: active-route-count
+      err: ' Number of routes, pre-check: {{pre["active-route-count"]}}, post-check:
+        {{post["active-route-count"]}}'
+      info: active route count should not changed
+    xpath: route-table
+
+tests_include:
+- bfd-check
+- bgp-check
+- bgp-peers-estab
+- number_routes-check

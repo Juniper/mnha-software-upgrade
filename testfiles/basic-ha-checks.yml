@@ -1,0 +1,11 @@
+icl-up:
+- command: show chassis high-availability information 
+- item:
+    xpath: //chassis-high-availability-peer-info
+    tests:
+    - err: ICL is {{ post["high-availability-peer-bfd-status"]}}
+      info: checking if ICL is up
+      is-equal: high-availability-peer-bfd-status, UP 
+
+tests_include:
+- icl-up 

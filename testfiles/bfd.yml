@@ -1,0 +1,13 @@
+bfd-check:
+- command: show bfd session 
+- iterate:
+    id: session-neighbor
+    tests:
+    - no-diff: //session-state
+      err: ' pre-check: {{pre["session-state"]}}, post-check: {{post["session-state"]}}' 
+      info: The BFD session state check 
+      is-equal: session-state, Up
+    xpath: bfd-session
+
+tests_include:
+- bfd-check

@@ -1,0 +1,49 @@
+major-chassis-alarm-check:
+- command: show system alarms
+- ignore-null: True
+- iterate:
+    xpath: //alarm-detail
+    id: alarm-class
+    tests:
+    - err: There is {{post["alarm-description"]}} chassis alarm
+      info: Major alarm found
+      not-contains: //alarm-class, Major
+
+
+major-system-alarm-check:
+- command: show system alarms
+- ignore-null: True
+- iterate:
+    xpath: //alarm-detail
+    id: alarm-class
+    tests:
+    - err: There is {{post["alarm-description"]}} system alarm
+      info: Major alarm found
+      not-contains: //alarm-class, Major
+
+
+RE-Checks:
+- command: show chassis routing-engine
+- item:
+    xpath: //route-engine-information
+    tests:
+      - err: ' CPU utilization is high, there is low idle CPU'
+        info: Checking RE CPU
+        in-range: //cpu-idle, 50,99
+
+control-plane-up:
+- command: show chassis high-availability information
+- item:
+    xpath: //chassis-high-availability-info
+    tests:
+    - err: SRG-0 not ready
+      info: Check if SRG-0 is online
+      is-equal: node-status, ONLINE
+
+
+
+tests_include:
+- major-system-alarm-check
+- major-chassis-alarm-check
+- RE-Checks
+- control-plane-up

@@ -1,0 +1,14 @@
+isis-check:
+- command: show isis adjacency brief 
+- iterate:
+    id: interface-name 
+    tests:
+    - no-diff: //adjacency-state
+      err: ' pre-check: {{pre["adjacency-state"]}}, post-check: {{post["adjacency-state"]}}' 
+      info: The ISIS adjacency state check 
+      is-equal: adjacency-state, Up
+    xpath: //isis-adjacency
+
+
+tests_include:
+- isis-check

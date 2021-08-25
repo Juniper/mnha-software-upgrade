@@ -1,0 +1,23 @@
+srg-state-active-backup:
+- command: show chassis high-availability information
+- iterate:
+    xpath: //chassis-high-availability-srg-info/chassis-high-availability-srg-info-list
+    id: srg-id
+    tests:
+      - is-in: node-role, ACTIVE, BACKUP
+        Info: "All SRG ACTIVE or BACKUP"
+        err: "Not all SRG roles ACTIVE or BACKUP"
+
+control-plane-ready:
+- command: show chassis high-availability information
+- iterate:
+    xpath: //chassis-high-availability-srg-info/chassis-high-availability-srg-info-list
+    id: srg-id
+    tests:
+      - is-equal: control-plane, READY
+        Info: "Control plane state is ready"
+        err: "Control plane state is not ready, check VPN"
+
+tests_include:
+- srg-state-active-backup
+- control-plane-ready

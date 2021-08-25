@@ -1,0 +1,13 @@
+Interface-state-Check:
+- command: show interfaces terse
+- iterate:
+    id: name
+    tests:
+    - err: ' Interface Was {{pre["oper-status"]}}, now it''s {{post["oper-status"]}}'
+      info: Interface State check
+      no-diff: oper-status
+    xpath: physical-interface
+
+
+tests_include:
+- Interface-state-Check

@@ -1,0 +1,33 @@
+NOTICES FOR THIRD-PARTY CODE/DEPENDENCIES
+
+Name: Python (Python Software Foundation)
+Project URL: https://www.python.org
+License: https://docs.python.org/3/license.html
+
+Name: splitcopy
+Project URL: https://github.com/Juniper/splitcopy
+License: Apache Software License (Apache 2.0)
+
+Name: prompt_toolkit
+Project URL: https://pypi.org/project/prompt-toolkit/
+License: BSD-3-Clause License
+
+Name: junos_eznc
+Project URL: https://github.com/Juniper/py-junos-eznc
+License: Apache Software License (Apache 2.0)
+
+Name: lxml
+Project URL: https://pypi.org/project/lxml/
+License: BSD License (BSD)
+
+Name: dataclasses
+Project URL: https://pypi.org/project/dataclasses/
+License: Apache Software License (Apache)
+
+Name: PyYAML
+Project URL: https://pypi.org/project/PyYAML/
+License: MIT License (MIT)
+
+Name: jsnapy
+Project URL: https://github.com/Juniper/jsnapy
+License: Apache Software License (Apache)

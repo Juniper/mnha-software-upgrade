@@ -1,0 +1,17 @@
+zero:
+ name: node0
+ ip: 5.6.7.8 
+ port: 22
+ username: admin
+ passwd: password
+ order: 2
+ upgrade_image: /path/image.tgz
+
+one:
+ name: node1
+ ip: 5.6.7.9
+ port: 22
+ username: admin
+ passwd: password
+ order: 1
+ upgrade_image: /path/image.tgz

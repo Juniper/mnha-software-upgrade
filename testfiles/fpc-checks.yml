@@ -1,0 +1,40 @@
+FPC-Online-check:
+- command: show chassis fpc
+- ignore-null: True
+- iterate:
+    id: slot
+    tests:
+    - err: ' FPC Was {{pre["state"]}}, now it is {{post["state"]}}'
+      info: FPC State check
+      no-diff: state
+    xpath: //fpc
+
+
+pic-check:
+- command: show chassis fpc pic-status
+- ignore-null: True
+- iterate:
+    id: fpc/pic/pic-slot, fpc/slot
+    tests:
+    - err: PIC {{post["fpc/pic/pic-slot"]}} in FPC {{post["fpc/slot"]}} changed status from
+        {{pre["fpc/pic/pic-state"]}} to {{post["fpc/pic/pic-state"]}}
+      info: PIC status check
+      no-diff: fpc/pic/pic-state
+    xpath: //fpc-information
+
+
+PFE-Version_Check:
+- command: show pfe version brief
+- item:
+    id: //release
+    xpath: //version-information
+    tests:
+      - err: ' Version is N/A'
+        info: Current PFE Version is post {{post["//release"]}}
+        exists: //release
+
+
+tests_include:
+- FPC-Online-check
+- pic-check
+- PFE-Version_Check
