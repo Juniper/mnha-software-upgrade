@@ -290,6 +290,22 @@ class DeviceUpgrade():
             return False
         return True
 
+    def show_install_on_failure_route_status(self, device):
+        ''' print the route status '''
+        # Complain if install-on-failure is not installed
+        # Assume there is only 1 IP address under this CLI.
+        try:
+            with jdevice(host=device.ip, user=device.username,
+                         password=device.passwd, port=device.port,
+                         normalize=True, auto_probe=30) as dev:
+                sw = SW(dev)
+                data = sw.rpc.get_chassis_high_availability_srg_information(services_redundancy_group_id='0')
+                route = data.xpath(".//ha-srg-signal-rt-ipaddr")[0].text
+                status = data.xpath(".//ha-srg-signal-rt-status")[0].text
+                logger.info("Install on failure route ({}) is ({})".format(route, status))
+        except Exception:
+            logger.info("Install on failure not configured")
+
     def install_img(self, device):
         ''' Install image on device '''
         image = device.upgrade_image.split('/')[-1]
@@ -565,6 +581,8 @@ class DeviceUpgrade():
         except Exception:
             logger.critical("Could not verify node status")
 
+        self.show_install_on_failure_route_status(device)
+
     def delete_software_upgrade(self, device):
         ''' remove software upgrade mode so the device can probe for activeness '''
         if prompt_mode:
@@ -604,6 +622,8 @@ class DeviceUpgrade():
                     sys.exit(1)
         except Exception:
             logger.critical("Could not verify node status")
+
+        self.show_install_on_failure_route_status(device)
 
     def post2_upgrade_validation(self, device):
         ''' Run post2 upgrade on specified device '''
