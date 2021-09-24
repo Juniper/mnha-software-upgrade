@@ -43,6 +43,6 @@ number_routes-check:
 
 tests_include:
 - bfd-check
-- bgp-check
-- bgp-peers-estab
+#- bgp-check
+#- bgp-peers-estab
 - number_routes-check
