@@ -48,6 +48,7 @@ optional arguments:
   --prompt         Query for user input at each phase
   --no_copy        Do not copy image to device
   --no_cursor      Do not reposition cursor
+  --no_timer       Do not report timer stats
 
 required named arguments:
   --params PARAMS  YML formatted parameter file containing device information
@@ -66,6 +67,9 @@ python3.7 doUpgrade.py --params device_list.yml --test_run
 
 3) Perform all actions automatically and upgrade the topology.
 python3.7 doUpgrade.py --params device_list.yml
+
+4) By default, script will record the total time spent for each stage of each node in teststats/timerstats.yaml
+* Execute with --no_timer will disable this functionality
 
 3.1) Prompt the user at every stage and upgrade the topology.
 python3.7 doUpgrade.py --params device_list.yml --prompt

@@ -25,6 +25,8 @@ from jnpr.junos.utils.start_shell import StartShell
 import yaml
 import upgrade_utils as utils
 
+stats_directory = "teststats"
+timer_stats_file = "timerstats.yaml"
 
 @dataclass
 class Device:
@@ -37,12 +39,19 @@ class Device:
     upgrade_image: str
     order: int          # order to iterate through the devices
 
+@dataclass
+class DeviceTimer:
+    ''' Class for collecting device upgrade time '''
+    name: str
+    order: int          # order to iterate through the devices
+    timer_record: dict
 
 class DeviceUpgrade():
     ''' Class to drive the device upgrade '''
 
     def __init__(self, config_file, basic_tests, pre_tests, post1_tests, post2_tests):
         self.device_list = []
+        self.device_list_timer = []
         self.upgraded = []
         self.test_summary = {"Pass": 0,
                              "Fail": 0}
@@ -52,6 +61,50 @@ class DeviceUpgrade():
         self.pre_sanity = pre_tests
         self.post1_sanity = post1_tests
         self.post2_sanity = post2_tests
+
+    def time_now(self):
+        return round(time.time())
+
+    def update_device_timer(self, order, timer):
+        for device in self.device_list_timer:
+            if device.order == order:
+                device.timer_record[timer] = self.time_now()
+                return
+        print("Device list timer data structure error!!")
+        sys.exit(1)
+
+    def dump_timer_stats(self):
+        # return if --no_timer is enabled
+        if no_timer:
+            return
+
+        file_name = stats_directory + "/" + timer_stats_file
+        try:
+            f = open(file_name, 'r+')
+            f.truncate(0)
+        except Exception as err:
+            print("Cannot open " +  stats_directory + "/" +
+                 timer_stats_file + " !!")
+            return
+        device_list_timer_report = []
+        for t in self.device_list_timer:
+            image_copy_time = t.timer_record['image_copy_time_end'] - t.timer_record['image_copy_time_start']
+            cold_sync_time = t.timer_record['cold_sync_time_end'] - t.timer_record['cold_sync_time_start']
+            pre_verification_time = t.timer_record['pre_verification_time_end'] - t.timer_record['pre_verification_time_start']
+            post_verification_time = t.timer_record['post_verification_time_end'] - t.timer_record['post_verification_time_start']
+            total_upgrade_time = t.timer_record['total_upgrade_time_end'] - t.timer_record['total_upgrade_time_start']
+            timer_dict = {t.name :
+                 {'image_copy_time': str(image_copy_time) + " seconds",
+                  'pre_verification_time': str(pre_verification_time) + " seconds",
+                  'post1_verification_time': str(post_verification_time) + " seconds",
+                  'post2_verification_time': str(cold_sync_time) + " seconds",
+                  'total_upgrade_time': str(total_upgrade_time) + " seconds"}}
+
+            device_list_timer_report.append(timer_dict)
+        
+        with f:
+           documents = yaml.dump(device_list_timer_report, f)
+           f.close()
 
     def parse_device_list(self, file_name):
         ''' Parse all the devices from the device file '''
@@ -70,13 +123,31 @@ class DeviceUpgrade():
                 logger.critical("Not a valid yaml format \
                     ({}). Exiting".format(e))
                 sys.exit(1)
+        print(data)
         for entry in data:
+            timer_dict = {'image_copy_time_start': self.time_now(),
+                          'cold_sync_time_start': self.time_now(),
+                          'pre_verification_time_start': self.time_now(),
+                          'post_verification_time_start': self.time_now(),
+                          'total_upgrade_time_start': self.time_now(),
+                          'image_copy_time_end': self.time_now(),
+                          'cold_sync_time_end': self.time_now(),
+                          'pre_verification_time_end': self.time_now(),
+                          'post_verification_time_end': self.time_now(),
+                          'total_upgrade_time_end': self.time_now()}
             d = Device(**data[entry])  # order of attributes matters
             self.device_list.append(d)
+            t = DeviceTimer(d.name, d.order, timer_dict)   
+            self.device_list_timer.append(t)
+
+        # Initialize the timer stats
+        self.dump_timer_stats()
 
         # Sort by the order defined in the file
         self.device_list.sort(key=lambda x: x.order)
-        for d in self.device_list:
+        self.device_list_timer.sort(key=lambda x: x.order)
+
+        for i, d in enumerate(self.device_list):
             logger.info(d)
         return True
 
@@ -92,7 +163,7 @@ class DeviceUpgrade():
             logger.info("Test mode, skip copy of images")
             return
         # Copy image to /var/tmp since install will pull from there
-        for device in self.device_list:
+        for i, device in enumerate(self.device_list):
             # Check if file is already on the remote side
             try:
                 with StartShell(jdevice(host=device.ip, user=device.username,
@@ -138,6 +209,8 @@ class DeviceUpgrade():
                     device.upgrade_image, device.name))
                 cmd = " ".join([splitcopy_path, device.upgrade_image, device.username +
                                 "@" + device.ip + ":/var/tmp", "--pwd", device.passwd])
+                print(cmd)
+                self.device_list_timer[i].timer_record['image_copy_time_start'] = self.time_now()
                 process = subprocess.Popen(cmd, shell=True)
                 process.wait()
                 if process.returncode != 0:
@@ -145,6 +218,8 @@ class DeviceUpgrade():
                     sys.exit(1)
                 else:
                     logger.info("Image copy successful")
+                    self.device_list_timer[i].timer_record['image_copy_time_end'] = self.time_now()
+                    self.dump_timer_stats()
             except Exception as err:
                 logger.info(
                     "Issues copying image to {}.  err: {}".format(device.name, err))
@@ -526,7 +601,9 @@ class DeviceUpgrade():
 
     def pre_upgrade_validation(self, device):
         ''' Run pre upgrade on specificed device '''
-
+        self.update_device_timer(device.order, 'pre_verification_time_start')
+        self.update_device_timer(device.order, 'total_upgrade_time_start')
+        self.update_device_timer(device.order, 'total_upgrade_time_end')
         self.banner(
             "Gathering PRE upgrade information for {}".format(device.name))
 
@@ -541,6 +618,9 @@ class DeviceUpgrade():
             self.write_config(device, config_file, check)
             # take snapshot and save it to the snapshot directory in xml format
             self.js.snap(config_file, "pre")
+
+        self.update_device_timer(device.order, 'pre_verification_time_end')
+        self.dump_timer_stats()
 
     def config_software_upgrade(self, device):
         ''' configure software upgrade mode so that after install, it boots into offline '''
@@ -629,6 +709,7 @@ class DeviceUpgrade():
         ''' Run post2 upgrade on specified device '''
         # always prompt here, the testbed just booted up and needs time
         # to initialize or many RPC commands will fail
+        self.update_device_timer(device.order, "cold_sync_time_start")
         utils.basic_wait("Allow RE to settle before collecting post2 \
             information. Wait {} seconds".format(
             delete_config_wait), delete_config_wait, cursor)
@@ -670,11 +751,16 @@ class DeviceUpgrade():
                     self.abort()
                     sys.exit(0)
 
+        self.update_device_timer(device.order, 'cold_sync_time_end')
+        self.update_device_timer(device.order, 'total_upgrade_time_end')
+        self.dump_timer_stats()
+
     def post1_upgrade_validation(self, device):
         ''' Run post1 upgrade on specified device '''
         if prompt_mode:
             self.basic_prompt("Post validation phase 1.")
 
+        self.update_device_timer(device.order, 'post_verification_time_start')
         self.banner(
             "Do POST1 checks before removing local upgrade config for {}".format(device.name))
 
@@ -708,6 +794,9 @@ class DeviceUpgrade():
                         "User abort, execute rollback logic")
                     self.abort()
                     sys.exit(0)
+
+        self.update_device_timer(device.order, 'post_verification_time_end')
+        self.dump_timer_stats()
 
     def final_summary(self):
         ''' Summary of passed/failed test cases '''
@@ -794,6 +883,13 @@ if __name__ == "__main__":
     # create snapshot directory
     Path("snapshots").mkdir(parents=True, exist_ok=True)
 
+    # remove existing teststats directory
+    try:
+        shutil.rmtree(stats_directory)
+    except Exception as err:
+        logger.warning("Test stats directory not existed. Skip removing!".format(err))
+        pass
+
     # required: set custom jsnapy path
     os.environ["JSNAPY_HOME"] = "./.jsnapy/"
 
@@ -821,6 +917,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "--no_cursor", help="Do not reposition cursor",
         action="store_true")
+    parser.add_argument(
+        "--no_timer", help="Do not report upgrade timings",
+        action="store_true")
     args = parser.parse_args()
 
     test_mode = args.test_run
@@ -828,6 +927,19 @@ if __name__ == "__main__":
     params_file = args.params
     no_copy = args.no_copy
     cursor = args.no_cursor
+    no_timer = args.no_timer
+
+    # create teststats director to bookkeep upgrade stats
+    if not no_timer:
+        Path(stats_directory).mkdir(parents=True, exist_ok=True)
+        file_name = stats_directory + "/" + timer_stats_file
+        try:
+            f = open(file_name, 'w')
+        except Exception as err:
+            print("Cannot open " +  stats_directory + "/" +
+                 timer_stats_file + " !!")
+            sys.exit(1)
+        f.close()
 
     config = configparser.ConfigParser()
     config.read('.jsnapy/timers.cfg')
