@@ -42,6 +42,7 @@ class Device:
 @dataclass
 class DeviceTimer:
     ''' Class for collecting device upgrade time '''
+    device: str         # node0 or node1
     name: str
     order: int          # order to iterate through the devices
     timer_record: dict
@@ -137,11 +138,12 @@ class DeviceUpgrade():
                           'total_upgrade_time_end': self.time_now()}
             d = Device(**data[entry])  # order of attributes matters
             self.device_list.append(d)
-            t = DeviceTimer(d.name, d.order, timer_dict)   
+            t = DeviceTimer(entry, d.name, d.order, timer_dict)   
             self.device_list_timer.append(t)
-
+            
         # Initialize the timer stats
         self.dump_timer_stats()
+        self.timer_summary()
 
         # Sort by the order defined in the file
         self.device_list.sort(key=lambda x: x.order)
@@ -798,8 +800,31 @@ class DeviceUpgrade():
         self.update_device_timer(device.order, 'post_verification_time_end')
         self.dump_timer_stats()
 
+    def timer_summary(self):
+        ''' Summary of timer stats'''
+        if no_timer:
+            return
+        self.banner("Summary of timer stats")
+        for t in self.device_list_timer:
+            image_copy_time = t.timer_record['image_copy_time_end'] - t.timer_record['image_copy_time_start']
+            cold_sync_time = t.timer_record['cold_sync_time_end'] - t.timer_record['cold_sync_time_start']
+            pre_verification_time = t.timer_record['pre_verification_time_end'] - t.timer_record['pre_verification_time_start']
+            post_verification_time = t.timer_record['post_verification_time_end'] - t.timer_record['post_verification_time_start']
+            total_upgrade_time = t.timer_record['total_upgrade_time_end'] - t.timer_record['total_upgrade_time_start']
+            str1 = t.name + "_" + t.device + '_image_copy_time : ' + str(image_copy_time) + " seconds"
+            str2 = t.name + "_" + t.device + '_pre_verification_time : ' + str(pre_verification_time) + " seconds"
+            str3 = t.name + "_" + t.device + '_post1_verification_time : ' + str(post_verification_time) + " seconds"
+            str4 = t.name + "_" + t.device + '_post2_verification_time : ' + str(cold_sync_time) + " seconds"
+            str5 = t.name + "_" + t.device + '_total_upgrade_time : ' + str(total_upgrade_time) + " seconds"
+            print(str1)
+            print(str2)
+            print(str3)
+            print(str4)
+            print(str5)
+ 
     def final_summary(self):
-        ''' Summary of passed/failed test cases '''
+        ''' Summary of passed/failed test cases and timers'''
+        self.timer_summary()
         self.banner("Summary of test case results")
         logger.info("Total test case passed: {}".format(
             self.test_summary["Pass"]))
