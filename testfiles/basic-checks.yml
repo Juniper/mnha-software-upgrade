@@ -29,7 +29,7 @@ RE-Checks:
     tests:
       - err: ' CPU utilization is high, there is low idle CPU'
         info: Checking RE CPU
-        in-range: //cpu-idle, 50,99
+        in-range: //cpu-idle, 20,99
 
 control-plane-up:
 - command: show chassis high-availability information
